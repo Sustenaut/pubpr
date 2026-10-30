@@ -1,0 +1,107 @@
+{
+  "claims": {
+    "identity": {
+      "class": "archival",
+      "content": "pubpr 0.1.0 is released as v0.1.0 from commit 5a3f67307b40c83953ac6f7636d9d33d676c5d0e.",
+      "data": {
+        "columns": [
+          {
+            "name": "name"
+          },
+          {
+            "name": "version"
+          },
+          {
+            "name": "check"
+          },
+          {
+            "name": "expect"
+          },
+          {
+            "name": "tag"
+          },
+          {
+            "name": "commit"
+          }
+        ],
+        "rows": [
+          [
+            "pubpr",
+            "0.1.0",
+            "",
+            "",
+            "v0.1.0",
+            "5a3f67307b40c83953ac6f7636d9d33d676c5d0e"
+          ]
+        ]
+      },
+      "scope": "the published release v0.1.0 of pubpr",
+      "sources": [
+        {
+          "ref": "pubpr",
+          "revision": "5a3f67307b40c83953ac6f7636d9d33d676c5d0e"
+        }
+      ]
+    },
+    "release": {
+      "class": "archival",
+      "content": "pubpr 0.1.0 was released on 2026-10-30 from commit 5a3f67307b40c83953ac6f7636d9d33d676c5d0e with these changes.",
+      "data": {
+        "columns": [
+          {
+            "name": "category"
+          },
+          {
+            "name": "change"
+          }
+        ],
+        "rows": [
+          [
+            "added",
+            "github: the request function propose uses, for reading a repository first."
+          ],
+          [
+            "added",
+            "propose: one commit with every changed file on the newest base, and a pull request for it, from a browser or Node 20 or later, with no dependencies. It keeps no token, and says when there is nothing to change."
+          ],
+          [
+            "added",
+            "pubpr/fake: a publisher for tests that writes the would-be pull request to memory."
+          ]
+        ]
+      },
+      "depends": [
+        "#identity"
+      ],
+      "scope": "the published release v0.1.0 of pubpr",
+      "sources": [
+        {
+          "ref": "pubpr",
+          "revision": "5a3f67307b40c83953ac6f7636d9d33d676c5d0e"
+        }
+      ]
+    }
+  },
+  "created": "2026-10-30T00:00:00Z",
+  "sections": [
+    {
+      "heading": "Identity",
+      "items": [
+        {
+          "ref": "#identity"
+        }
+      ]
+    },
+    {
+      "heading": "Release",
+      "items": [
+        {
+          "ref": "#release"
+        }
+      ]
+    }
+  ],
+  "slug": "pkg.pubpr",
+  "tag": "PKG-PUBPRL-10-2026",
+  "title": "pubpr"
+}
