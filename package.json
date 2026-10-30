@@ -1,0 +1,24 @@
+{
+  "name": "pubpr",
+  "version": "0.1.0",
+  "description": "Propose changes to a GitHub repository as one commit and a pull request, from a browser or Node.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./lib/pubpr.js",
+    "./fake": "./lib/fake.js"
+  },
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "test": "mkdir -p coverage && node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Sustenaut/pubpr.git"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
