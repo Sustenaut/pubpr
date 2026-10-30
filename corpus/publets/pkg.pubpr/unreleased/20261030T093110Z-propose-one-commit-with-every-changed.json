@@ -1,4 +1,0 @@
-{
-  "category": "added",
-  "change": "propose: one commit with every changed file on the newest base, and a pull request for it, from a browser or Node 20 or later, with no dependencies. It keeps no token, and says when there is nothing to change."
-}

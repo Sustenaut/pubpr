@@ -1,4 +1,0 @@
-{
-  "category": "added",
-  "change": "pubpr/fake: a publisher for tests that writes the would-be pull request to memory."
-}
