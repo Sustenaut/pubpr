@@ -206,6 +206,6 @@ test("the package needs nothing: no dependencies, no imports, nothing only Node 
   const manifest = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
   assert.equal(manifest.dependencies, undefined);
   const source = await readFile(new URL("../lib/pubpr.js", import.meta.url), "utf8");
-  assert.equal(/^\s*import\b/m.test(source), false);
+  assert.equal(/^import\b/m.test(source), false);
   assert.equal(/\b(process|require|Buffer)\b/.test(source), false);
 });

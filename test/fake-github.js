@@ -5,7 +5,7 @@
 
 import { createHash } from "node:crypto";
 
-const sha = (value) => createHash("sha1").update(JSON.stringify(value)).digest("hex");
+const sha = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
 export function fakeGitHub({ repo = "o/r", defaultBranch = "main", files = {}, token = "secret" } = {}) {
   const trees = new Map();
@@ -30,62 +30,64 @@ export function fakeGitHub({ repo = "o/r", defaultBranch = "main", files = {}, t
     new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
   const refuse = (status, message) => json(status, { message });
 
+  const found = (value) => (value === undefined ? refuse(404, "Not Found") : json(200, value));
+
+  function readContents(path, ref, accept) {
+    const tree = trees.get(commits.get(ref)?.tree.sha);
+    if (!tree || !(path in tree)) return refuse(404, "Not Found");
+    return accept.includes("raw") ? new Response(tree[path]) : json(200, { path });
+  }
+
+  function writeTree(body) {
+    const tree = { ...trees.get(body.base_tree) };
+    for (const entry of body.tree) {
+      if (entry.sha === null && !(entry.path in tree)) return refuse(422, "GitRPC::BadObjectState");
+      if (entry.sha === null) delete tree[entry.path];
+      else tree[entry.path] = entry.content;
+    }
+    return json(201, { sha: addTree(tree) });
+  }
+
+  function writeCommit(body) {
+    if (!trees.has(body.tree)) return refuse(422, "Tree SHA does not exist");
+    return json(201, { sha: addCommit(body.tree, body.parents, body.message) });
+  }
+
+  function writeRef(body) {
+    const name = body.ref.replace("refs/heads/", "");
+    if (refs.has(name)) return refuse(422, "Reference already exists");
+    refs.set(name, body.sha);
+    return json(201, { ref: body.ref });
+  }
+
+  function writePull(body) {
+    if (!refs.has(body.head) || !refs.has(body.base)) return refuse(422, "Validation Failed");
+    const number = pulls.length + 1;
+    const pull = { ...body, number, html_url: `https://github.com/${repo}/pull/${number}` };
+    pulls.push(pull);
+    return json(201, pull);
+  }
+
+  // Each route: its method, its path under the repository, and what answers.
+  const routes = [
+    ["GET", /^$/, () => json(200, { default_branch: defaultBranch, permissions: { push: true } })],
+    ["GET", /^\/git\/ref\/heads\/(.+)$/, ({ match }) => found(refs.has(match) ? { object: { sha: refs.get(match) } } : undefined)],
+    ["GET", /^\/git\/commits\/(.+)$/, ({ match }) => found(commits.get(match))],
+    ["GET", /^\/contents\/(.+)$/, ({ match, url, accept }) => readContents(match, url.searchParams.get("ref"), accept)],
+    ["POST", /^\/git\/trees$/, ({ body }) => writeTree(body)],
+    ["POST", /^\/git\/commits$/, ({ body }) => writeCommit(body)],
+    ["POST", /^\/git\/refs$/, ({ body }) => writeRef(body)],
+    ["POST", /^\/pulls$/, ({ body }) => writePull(body)],
+  ];
+
   function route(method, url, body, accept) {
     const prefix = `/repos/${repo}`;
     if (!url.pathname.startsWith(prefix)) return refuse(404, "Not Found");
     const path = decodeURIComponent(url.pathname.slice(prefix.length));
-
-    if (method === "GET" && path === "") return json(200, { default_branch: defaultBranch, permissions: { push: true } });
-
-    const ref = path.match(/^\/git\/ref\/heads\/(.+)$/);
-    if (method === "GET" && ref) {
-      return refs.has(ref[1]) ? json(200, { object: { sha: refs.get(ref[1]) } }) : refuse(404, "Not Found");
+    for (const [verb, pattern, answer] of routes) {
+      const match = verb === method && path.match(pattern);
+      if (match) return answer({ match: match[1], url, body, accept });
     }
-
-    const commit = path.match(/^\/git\/commits\/(.+)$/);
-    if (method === "GET" && commit) {
-      return commits.has(commit[1]) ? json(200, commits.get(commit[1])) : refuse(404, "Not Found");
-    }
-
-    const contents = path.match(/^\/contents\/(.+)$/);
-    if (method === "GET" && contents) {
-      const tree = trees.get(commits.get(url.searchParams.get("ref"))?.tree.sha);
-      if (!tree || !(contents[1] in tree)) return refuse(404, "Not Found");
-      if (accept.includes("raw")) return new Response(tree[contents[1]]);
-      return json(200, { path: contents[1] });
-    }
-
-    if (method === "POST" && path === "/git/trees") {
-      const tree = { ...trees.get(body.base_tree) };
-      for (const entry of body.tree) {
-        if (entry.sha === null) {
-          if (!(entry.path in tree)) return refuse(422, "GitRPC::BadObjectState");
-          delete tree[entry.path];
-        } else tree[entry.path] = entry.content;
-      }
-      return json(201, { sha: addTree(tree) });
-    }
-
-    if (method === "POST" && path === "/git/commits") {
-      if (!trees.has(body.tree)) return refuse(422, "Tree SHA does not exist");
-      return json(201, { sha: addCommit(body.tree, body.parents, body.message) });
-    }
-
-    if (method === "POST" && path === "/git/refs") {
-      const name = body.ref.replace("refs/heads/", "");
-      if (refs.has(name)) return refuse(422, "Reference already exists");
-      refs.set(name, body.sha);
-      return json(201, { ref: body.ref });
-    }
-
-    if (method === "POST" && path === "/pulls") {
-      if (!refs.has(body.head) || !refs.has(body.base)) return refuse(422, "Validation Failed");
-      const number = pulls.length + 1;
-      const pull = { ...body, number, html_url: `https://github.com/${repo}/pull/${number}` };
-      pulls.push(pull);
-      return json(201, pull);
-    }
-
     return refuse(404, "Not Found");
   }
 
