@@ -14,6 +14,7 @@
       "ci / passed",
       "release / release",
       "SonarCloud Code Analysis"
-    ]
+    ],
+    "release_app": 5529889
   }
 }
