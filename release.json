@@ -1,0 +1,22 @@
+{
+  "name": "pubpr",
+  "package": "pkg.pubpr",
+  "tag": "PKG-PUBPRL-10-2026",
+  "corpus": "corpus",
+  "manifest": {
+    "kind": "npm",
+    "path": "package.json"
+  },
+  "code": [
+    "lib/",
+    "package.json",
+    "package-lock.json"
+  ],
+  "install": "npm install github:Sustenaut/pubpr#{tag}",
+  "jsdelivr": {
+    "files": [
+      "lib/pubpr.js"
+    ]
+  },
+  "key": "pub:sha2-256:lhprg7672pdiicz226jedz2oyfvl7xl7i6dzdnl2kanjz5an5d5a"
+}

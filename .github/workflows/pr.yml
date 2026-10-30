@@ -1,0 +1,59 @@
+# Written by `pubkit sync` from the ci block of pubkit.json. Do not edit:
+# change pubkit.json and run `pubkit sync`.
+name: pr
+
+on:
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ci
+    uses: Sustenaut/pubkit/.github/workflows/job-node-test.yml@d851022829479923ae19cbc2a4eb1409a748479b # v0.21.1
+    with: {"coverage-report": "coverage/"}
+
+  audit:
+    name: ci
+    uses: Sustenaut/pubkit/.github/workflows/job-node-audit.yml@d851022829479923ae19cbc2a4eb1409a748479b # v0.21.1
+
+  osv:
+    name: ci
+    uses: Sustenaut/pubkit/.github/workflows/job-osv.yml@d851022829479923ae19cbc2a4eb1409a748479b # v0.21.1
+
+  review:
+    name: ci
+    uses: Sustenaut/pubkit/.github/workflows/job-review.yml@d851022829479923ae19cbc2a4eb1409a748479b # v0.21.1
+
+  sonar:
+    name: ci
+    needs: [test]
+    uses: Sustenaut/pubkit/.github/workflows/job-sonar.yml@d851022829479923ae19cbc2a4eb1409a748479b # v0.21.1
+    with: {"sonar-args": "-Dsonar.tests=test -Dsonar.exclusions=test/**", "reports": "sonar.javascript.lcov.reportPaths=*"}
+    secrets: { SONAR_TOKEN: '${{ secrets.SONAR_TOKEN }}' }
+
+  # The one check a ruleset requires: it passes only when every job
+  # above succeeded. None of them is ever skipped for not being asked for.
+  passed:
+    name: ci / passed
+    if: always()
+    needs: [test, audit, osv, review, sonar]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "$RESULTS"
+          echo "$RESULTS" | jq -e 'all(.[]; .result == "success")' > /dev/null
+        env: { RESULTS: '${{ toJSON(needs) }}' }
+
+  # pubrel's release workflow: on a pull request, a code change records
+  # what it changes and a release is the bump its changes require; on
+  # main, a published version is tagged and released.
+  release:
+    needs: passed
+    uses: Sustenaut/pubrel/.github/workflows/release.yml@5395ddd816d9530b649b92ed0b8b3cfdfe87d7dc # v0.6.1
+    with: {"pubrel-version": "v0.6.1"}
+    secrets: { RELEASE_APP_ID: '${{ secrets.RELEASE_APP_ID }}', RELEASE_APP_KEY: '${{ secrets.RELEASE_APP_KEY }}' }
+    permissions:
+      contents: write
