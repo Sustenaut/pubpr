@@ -10,7 +10,7 @@ test("the would-be pull request is written to memory", async () => {
   const result = await fake.propose(proposal({ base: "main", body: "Why.", changes: { "a.txt": "new\n", "b.txt": null } }));
   assert.deepEqual(result, { status: "opened", url: "https://github.com/o/r/pull/1", number: 1, branch: "b", commit: "fake-commit-1" });
   assert.deepEqual(fake.proposals, [
-    { repo: "o/r", base: "main", branch: "b", title: "T", body: "Why.", message: "T\n\nWhy.", parent: undefined, changes: { "a.txt": "new\n" } },
+    { repo: "o/r", base: "main", branch: "b", title: "T", body: "Why.", message: "T\n\nWhy.", parent: undefined, expect: undefined, autoMerge: undefined, changes: { "a.txt": "new\n" } },
   ]);
 });
 
@@ -42,4 +42,22 @@ test("it refuses what propose refuses", async () => {
   await assert.rejects(fake.propose(proposal({ changes: { "a.txt": 1 } })), /neither text nor null/);
   await fake.propose(proposal());
   await assert.rejects(fake.propose(proposal()), /Reference already exists/);
+});
+
+test("it records expect and autoMerge, and answers as propose does", async () => {
+  const fake = fakePublisher();
+  const result = await fake.propose(proposal({ expect: { "a.txt": "s" }, autoMerge: true }));
+  assert.equal(result.autoMerge, "on");
+  assert.deepEqual(fake.proposals[0].expect, { "a.txt": "s" });
+  assert.equal(fake.proposals[0].autoMerge, true);
+  assert.equal("autoMerge" in (await fake.propose(proposal({ branch: "b2" }))), false);
+  const refused = fakePublisher({ autoMerge: "not allowed" });
+  assert.equal((await refused.propose(proposal({ autoMerge: true }))).autoMerge, "not allowed");
+});
+
+test("a moved file makes a proposal that expects it stale", async () => {
+  const fake = fakePublisher({ moved: ["a.txt"] });
+  assert.deepEqual(await fake.propose(proposal({ expect: { "a.txt": "s" } })), { status: "stale", path: "a.txt" });
+  assert.equal(fake.proposals.length, 0);
+  assert.equal((await fake.propose(proposal())).status, "opened");
 });

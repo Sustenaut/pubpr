@@ -51,13 +51,17 @@ pull request from it.
 | `body` | The pull request's description. |
 | `message` | The commit's message. By default, the title and the body. |
 | `parent` | The commit to build on, instead of the newest one on `base`. |
+| `expect` | An object from a path to the blob sha you read it at, or `null` if it was missing. Refuses if a file has moved. |
+| `autoMerge` | `true` asks GitHub to merge the pull request once its required checks pass. |
 | `fetch` | Stands in for the global `fetch`. |
 
 It answers one of:
 
 ```js
 { status: "opened", url, number, branch, commit }
+{ status: "opened", url, number, branch, commit, autoMerge }
 { status: "nothing to change" }
+{ status: "stale", path }
 ```
 
 `"nothing to change"` means the repository already has every change: each file
@@ -73,6 +77,15 @@ them, pass the commit you read. The commit then sits on what you read, so a
 change someone else has since made to the same file shows up as a merge
 conflict. Built on the newest commit instead, your older text would quietly undo
 theirs.
+
+**`expect`.** If what a person sees decides what they change, pass the blob sha
+of the file they saw (the `sha` from GitHub's contents API). If the file has moved,
+`propose` answers `"stale"` with its path and writes nothing, so they can look again.
+
+**`autoMerge`.** The answer's `autoMerge` is `"on"`; `"merged"`, when GitHub has
+nothing left to wait for; or GitHub's reason for refusing, since the pull request
+exists either way. The repository must allow auto-merge. A token needs Contents and
+Pull requests write, as it does for the rest.
 
 **Limits.** Text only, since the changes go through the tree API's `content`.
 Every written file is a regular file (mode `100644`), so a change to an

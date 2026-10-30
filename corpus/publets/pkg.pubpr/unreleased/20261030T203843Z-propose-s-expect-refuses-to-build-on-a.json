@@ -1,0 +1,4 @@
+{
+  "category": "added",
+  "change": "propose's expect refuses to build on a file that has moved since the caller read it, answering stale, and its autoMerge asks GitHub to merge the pull request once its checks pass."
+}

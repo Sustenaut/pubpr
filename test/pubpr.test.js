@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { propose, github } from "../lib/pubpr.js";
-import { fakeGitHub } from "./fake-github.js";
+import { blobSha, fakeGitHub } from "./fake-github.js";
 
 const proposal = (gh, fields) => ({
   repo: "o/r",
@@ -200,6 +200,70 @@ test("github uses the global fetch unless told otherwise", async (t) => {
   const gh = fakeGitHub();
   t.mock.method(globalThis, "fetch", gh.fetch);
   assert.equal((await github({ token: "secret" })("/repos/o/r")).default_branch, "main");
+});
+
+test("expect lets a proposal through when each file is as read", async () => {
+  const gh = fakeGitHub({ files: { "a.txt": "old\n" } });
+  const result = await propose(proposal(gh, { expect: { "a.txt": blobSha("old\n"), "new.txt": null }, changes: { "a.txt": "new\n", "new.txt": "n\n" } }));
+  assert.equal(result.status, "opened");
+});
+
+for (const [name, expect, path] of [
+  ["a file that has changed", { "a.txt": blobSha("older\n") }, "a.txt"],
+  ["a file that has gone", { "gone.txt": "abc" }, "gone.txt"],
+  ["a file that has appeared", { "a.txt": null }, "a.txt"],
+]) {
+  test(`expect refuses ${name}, and writes nothing`, async () => {
+    const gh = fakeGitHub({ files: { "a.txt": "old\n" } });
+    assert.deepEqual(await propose(proposal(gh, { expect })), { status: "stale", path });
+    assert.deepEqual(gh.written(), []);
+  });
+}
+
+test("expect looks at what the proposal builds on, the newest commit by default", async () => {
+  const gh = fakeGitHub({ files: { "a.txt": "old\n" } });
+  const read = gh.branch("main");
+  gh.push("main", { "a.txt": "theirs\n" });
+  const expect = { "a.txt": blobSha("old\n") };
+  assert.equal((await propose(proposal(gh, { expect }))).status, "stale");
+  assert.equal((await propose(proposal(gh, { expect, parent: read }))).status, "opened");
+});
+
+test("autoMerge turns it on, and says so", async () => {
+  const gh = fakeGitHub();
+  const result = await propose(proposal(gh, { autoMerge: true }));
+  assert.equal(result.autoMerge, "on");
+  assert.deepEqual(gh.autoMerges, ["PR_1"]);
+  assert.deepEqual(gh.merged, []);
+});
+
+test("without autoMerge, nothing is asked", async () => {
+  const gh = fakeGitHub();
+  const result = await propose(proposal(gh));
+  assert.equal("autoMerge" in result, false);
+  assert.deepEqual(gh.autoMerges, []);
+});
+
+test("autoMerge merges now when GitHub says there's nothing left to wait for", async () => {
+  const gh = fakeGitHub({ autoMergeAnswer: "Pull request Pull request is in clean status" });
+  assert.equal((await propose(proposal(gh, { autoMerge: true }))).autoMerge, "merged");
+  assert.deepEqual(gh.merged, [1]);
+});
+
+test("autoMerge being refused is reported, and the pull request still stands", async () => {
+  const gh = fakeGitHub({ autoMergeAnswer: "Auto merge is not allowed for this repository" });
+  const result = await propose(proposal(gh, { autoMerge: true }));
+  assert.equal(result.status, "opened");
+  assert.equal(result.url, "https://github.com/o/r/pull/1");
+  assert.equal(result.autoMerge, "Auto merge is not allowed for this repository");
+});
+
+test("autoMerge failing outright is reported too", async () => {
+  const gh = fakeGitHub();
+  const failing = async (url, init) => (String(url).endsWith("/graphql") ? new Response("{}", { status: 502 }) : gh.fetch(url, init));
+  const result = await propose(proposal(gh, { autoMerge: true, fetch: failing }));
+  assert.equal(result.status, "opened");
+  assert.equal(result.autoMerge, "GitHub said 502");
 });
 
 test("the package needs nothing: no dependencies, no imports, nothing only Node has", async () => {
