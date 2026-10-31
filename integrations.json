@@ -1,0 +1,30 @@
+{
+  "uses": [
+    {
+      "plugin": "github.app-token",
+      "paths": [
+        ".github/workflows/main.yml",
+        ".github/workflows/pr.yml"
+      ]
+    },
+    {
+      "plugin": "github.edit-pr",
+      "paths": [
+        "lib/pubpr.js"
+      ]
+    },
+    {
+      "plugin": "sonarcloud.scan",
+      "paths": [
+        ".github/workflows/main.yml",
+        ".github/workflows/pr.yml"
+      ]
+    }
+  ],
+  "exclude": [
+    {
+      "path": "test/**",
+      "reason": "Fakes and test data"
+    }
+  ]
+}
