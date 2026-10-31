@@ -7,11 +7,15 @@ import { createHash } from "node:crypto";
 
 const sha = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
-export function fakeGitHub({ repo = "o/r", defaultBranch = "main", files = {}, token = "secret" } = {}) {
+export const blobSha = (text) => sha(["blob", text]);
+
+export function fakeGitHub({ repo = "o/r", defaultBranch = "main", files = {}, token = "secret", autoMergeAnswer } = {}) {
   const trees = new Map();
   const commits = new Map();
   const refs = new Map();
   const pulls = [];
+  const autoMerges = [];
+  const merged = [];
   const requests = [];
 
   function addTree(tree) {
@@ -35,7 +39,7 @@ export function fakeGitHub({ repo = "o/r", defaultBranch = "main", files = {}, t
   function readContents(path, ref, accept) {
     const tree = trees.get(commits.get(ref)?.tree.sha);
     if (!tree || !(path in tree)) return refuse(404, "Not Found");
-    return accept.includes("raw") ? new Response(tree[path]) : json(200, { path });
+    return accept.includes("raw") ? new Response(tree[path]) : json(200, { path, sha: blobSha(tree[path]) });
   }
 
   function writeTree(body) {
@@ -63,7 +67,7 @@ export function fakeGitHub({ repo = "o/r", defaultBranch = "main", files = {}, t
   function writePull(body) {
     if (!refs.has(body.head) || !refs.has(body.base)) return refuse(422, "Validation Failed");
     const number = pulls.length + 1;
-    const pull = { ...body, number, html_url: `https://github.com/${repo}/pull/${number}` };
+    const pull = { ...body, number, node_id: `PR_${number}`, html_url: `https://github.com/${repo}/pull/${number}` };
     pulls.push(pull);
     return json(201, pull);
   }
@@ -98,6 +102,15 @@ export function fakeGitHub({ repo = "o/r", defaultBranch = "main", files = {}, t
     requests.push({ method, path: url.pathname + url.search, authorization: init.headers?.Authorization, body });
     if (url.origin !== "https://api.github.com") throw new Error(`The fake is not ${url.origin}`);
     if (init.headers?.Authorization !== `Bearer ${token}`) return refuse(401, "Bad credentials");
+    if (method === "POST" && url.pathname === "/graphql") {
+      autoMerges.push(body.variables.id);
+      return json(200, autoMergeAnswer ? { errors: [{ message: autoMergeAnswer }] } : { data: {} });
+    }
+    const merge = url.pathname.match(/\/pulls\/(\d+)\/merge$/);
+    if (method === "PUT" && merge) {
+      merged.push(Number(merge[1]));
+      return json(200, { merged: true });
+    }
     return route(method, url, body, init.headers?.Accept ?? "");
   }
 
@@ -105,6 +118,8 @@ export function fakeGitHub({ repo = "o/r", defaultBranch = "main", files = {}, t
     fetch: request,
     requests,
     pulls,
+    autoMerges,
+    merged,
     branch: (name) => refs.get(name),
     commit: (name) => commits.get(name),
     // The files on a branch or at a commit.
