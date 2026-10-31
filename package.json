@@ -1,6 +1,6 @@
 {
   "name": "pubpr",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Propose changes to a GitHub repository as one commit and a pull request, from a browser or Node.",
   "license": "Apache-2.0",
   "type": "module",

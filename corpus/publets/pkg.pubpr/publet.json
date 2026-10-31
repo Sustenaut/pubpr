@@ -2,7 +2,7 @@
   "claims": {
     "identity": {
       "class": "archival",
-      "content": "pubpr 0.1.0 is released as v0.1.0 from commit 5a3f67307b40c83953ac6f7636d9d33d676c5d0e.",
+      "content": "pubpr 0.1.1 is released as v0.1.1 from commit adc8f9767d3a069b3937a79b56b4d0ece30b2363.",
       "data": {
         "columns": [
           {
@@ -27,25 +27,25 @@
         "rows": [
           [
             "pubpr",
-            "0.1.0",
+            "0.1.1",
             "",
             "",
-            "v0.1.0",
-            "5a3f67307b40c83953ac6f7636d9d33d676c5d0e"
+            "v0.1.1",
+            "adc8f9767d3a069b3937a79b56b4d0ece30b2363"
           ]
         ]
       },
-      "scope": "the published release v0.1.0 of pubpr",
+      "scope": "the published release v0.1.1 of pubpr",
       "sources": [
         {
           "ref": "pubpr",
-          "revision": "5a3f67307b40c83953ac6f7636d9d33d676c5d0e"
+          "revision": "adc8f9767d3a069b3937a79b56b4d0ece30b2363"
         }
       ]
     },
     "release": {
       "class": "archival",
-      "content": "pubpr 0.1.0 was released on 2026-10-30 from commit 5a3f67307b40c83953ac6f7636d9d33d676c5d0e with these changes.",
+      "content": "pubpr 0.1.1 was released on 2026-10-31 from commit adc8f9767d3a069b3937a79b56b4d0ece30b2363 with these changes.",
       "data": {
         "columns": [
           {
@@ -58,31 +58,23 @@
         "rows": [
           [
             "added",
-            "github: the request function propose uses, for reading a repository first."
-          ],
-          [
-            "added",
-            "propose: one commit with every changed file on the newest base, and a pull request for it, from a browser or Node 20 or later, with no dependencies. It keeps no token, and says when there is nothing to change."
-          ],
-          [
-            "added",
-            "pubpr/fake: a publisher for tests that writes the would-be pull request to memory."
+            "propose's expect refuses to build on a file that has moved since the caller read it, answering stale, and its autoMerge asks GitHub to merge the pull request once its checks pass."
           ]
         ]
       },
       "depends": [
         "#identity"
       ],
-      "scope": "the published release v0.1.0 of pubpr",
+      "scope": "the published release v0.1.1 of pubpr",
       "sources": [
         {
           "ref": "pubpr",
-          "revision": "5a3f67307b40c83953ac6f7636d9d33d676c5d0e"
+          "revision": "adc8f9767d3a069b3937a79b56b4d0ece30b2363"
         }
       ]
     }
   },
-  "created": "2026-10-30T00:00:00Z",
+  "created": "2026-10-31T00:00:00Z",
   "sections": [
     {
       "heading": "Identity",
