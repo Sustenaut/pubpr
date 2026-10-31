@@ -5,20 +5,23 @@
       "paths": [
         ".github/workflows/main.yml",
         ".github/workflows/pr.yml"
-      ]
+      ],
+      "mode": "required"
     },
     {
       "plugin": "github.edit-pr",
       "paths": [
         "lib/pubpr.js"
-      ]
+      ],
+      "mode": "required"
     },
     {
       "plugin": "sonarcloud.scan",
       "paths": [
         ".github/workflows/main.yml",
         ".github/workflows/pr.yml"
-      ]
+      ],
+      "mode": "required"
     }
   ],
   "exclude": [
