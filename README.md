@@ -54,6 +54,8 @@ pull request from it.
 | `expect` | An object from a path to the blob sha you read it at, or `null` if it was missing. Refuses if a file has moved. |
 | `autoMerge` | `true` asks GitHub to merge the pull request once its required checks pass. |
 | `fetch` | Stands in for the global `fetch`. |
+| `onCall` | A function given one record per request to GitHub. Off by default. |
+| `caller` | With `onCall`, who is calling: `repo` (required), and `app`, `mode` and `requestId`. |
 
 It answers one of:
 
@@ -147,6 +149,14 @@ The tests run with `node --test` against the fake GitHub in
 prepare` from a checkout whose `corpus/.publet` holds the release key, and merging
 its pull request tags it. See [pubkit](https://github.com/Sustenaut/pubkit#readme)
 for the shared setup.
+
+## Call records
+
+`onCall` is how the [integrations](https://github.com/Sustenaut/integrations)
+service will see these calls. Each record says who called, how long the request
+took and how it ended, in the format of that repository's
+`call-record.schema.json`. A record holds no body, URL or token. A hook that fails
+loses its record, not the request.
 
 ## Licence
 

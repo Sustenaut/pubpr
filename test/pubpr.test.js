@@ -273,3 +273,75 @@ test("the package needs nothing: no dependencies, no imports, nothing only Node 
   assert.equal(/^import\b/m.test(source), false);
   assert.equal(/\b(process|require|Buffer)\b/.test(source), false);
 });
+
+const RECORD_FIELDS = ["app", "at", "bytes_in", "bytes_out", "latency_ms", "mode", "operation", "outcome", "plugin",
+  "repo", "request_id", "retries", "route", "status"];
+
+test("onCall gets one record per request, with no body, URL or token", async () => {
+  const gh = fakeGitHub({ files: { "a.txt": "old\n" } });
+  const records = [];
+  const result = await propose(
+    proposal(gh, { onCall: (record) => records.push(record), caller: { repo: "a-repo", app: "web", mode: "advisory" } }),
+  );
+  assert.equal(result.status, "opened");
+  assert.equal(records.length, gh.requests.length);
+  for (const record of records) {
+    assert.deepEqual(Object.keys(record).sort(), RECORD_FIELDS);
+    assert.match(record.at, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    assert.equal(record.plugin, "github.edit-pr");
+    assert.equal(record.repo, "a-repo");
+    assert.equal(record.app, "web");
+    assert.equal(record.mode, "advisory");
+    assert.equal(record.outcome, "ok");
+    assert.ok(record.bytes_in > 0);
+    const text = JSON.stringify(record);
+    for (const leak of ["secret", "api.github.com", "new\\n"]) assert.ok(!text.includes(leak), leak);
+  }
+  assert.ok(records.some((record) => record.bytes_out > 0));
+  assert.equal(new Set(records.map((record) => record.request_id)).size, records.length);
+});
+
+test("a refusal and a failure are recorded and still reach the caller", async () => {
+  const answering = (status) => async () => new Response("{}", { status });
+  for (const [status, outcome] of [[404, "refused"], [500, "unavailable"], [429, "unavailable"]]) {
+    const records = [];
+    const api = github({ token: "t", fetch: answering(status), onCall: (r) => records.push(r), caller: { repo: "a" } });
+    await assert.rejects(api("/x"), { status });
+    assert.equal(records[0].outcome, outcome);
+    assert.equal(records[0].status, status);
+    assert.equal(records[0].mode, "required");
+    assert.equal(records[0].app, "");
+  }
+});
+
+test("no answer is recorded and the error reaches the caller", async () => {
+  const records = [];
+  const api = github({
+    token: "t",
+    fetch: async () => { throw new TypeError("network down"); },
+    onCall: (r) => records.push(r),
+    caller: { repo: "a", requestId: "from-the-app" },
+  });
+  await assert.rejects(api("/x"), /network down/);
+  assert.equal(records[0].status, null);
+  assert.equal(records[0].outcome, "unavailable");
+  assert.equal(records[0].request_id, "from-the-app");
+});
+
+test("a hook that fails loses its record, not the request", async () => {
+  const gh = fakeGitHub({ files: { "a.txt": "old\n" } });
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    const result = await propose(
+      proposal(gh, { onCall: () => { throw new Error("full"); }, caller: { repo: "a-repo" } }),
+    );
+    assert.equal(result.status, "opened");
+  } finally {
+    console.warn = warn;
+  }
+});
+
+test("onCall needs to be told who is calling", () => {
+  assert.throws(() => github({ token: "t", onCall: () => {} }), /caller with a repo/);
+});

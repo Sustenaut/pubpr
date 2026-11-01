@@ -1,0 +1,4 @@
+{
+  "category": "added",
+  "change": "A call record for each request: github and propose take onCall and caller, off by default, for the integrations service."
+}
