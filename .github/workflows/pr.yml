@@ -12,7 +12,7 @@ permissions:
 jobs:
   test:
     name: ci
-    uses: Sustenaut/pubkit/.github/workflows/job-node-test.yml@d851022829479923ae19cbc2a4eb1409a748479b # v0.21.1
+    uses: Sustenaut/pubkit/.github/workflows/job-node-test.yml@8a9855cbe28f633e2be1c99b5406ac62ef548592 # v0.27.0
     with: {"coverage-report": "coverage/"}
 
   audit:
