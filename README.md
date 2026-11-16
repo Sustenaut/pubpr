@@ -141,8 +141,11 @@ back when it would from GitHub. It does not need a token.
 npm test
 ```
 
-The tests run with `node --test` against the fake GitHub in
-`test/fake-github.js`, and never reach the network. Pull requests that change
+The tests are Gherkin scenarios (`test/features/*.feature`, with their steps
+in `test/*.steps.js`), run by cucumber-js under c8 for coverage, against the
+fake GitHub in `test/fake-github.js`; they never reach the network. The
+development dependencies (cucumber-js, c8) are for the tests only: pubpr itself
+still has none. Pull requests that change
 `lib/` record what they change with `pubrel add`; a release is cut with `pubrel
 prepare` from a checkout whose `corpus/.publet` holds the release key, and merging
 its pull request tags it. See [pubkit](https://github.com/Sustenaut/pubkit#readme)
