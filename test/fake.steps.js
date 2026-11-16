@@ -24,7 +24,7 @@ Then("the would-be pull request is written to memory", function () {
   assert.deepEqual(fake.proposals, [
     { repo: "o/r", base: "main", branch: "b", title: "T", body: "Why.", message: "T\n\nWhy.", parent: undefined, expect: undefined, autoMerge: undefined, changes: { "a.txt": "new\n" } },
   ]);
-})(scenarioContext);
+})();
 });
 
 Then("it keeps no token, and needs none", function () {
@@ -32,7 +32,7 @@ Then("it keeps no token, and needs none", function () {
   const fake = fakePublisher();
   await fake.propose(proposal({ token: "secret" }));
   assert.equal(JSON.stringify(fake.proposals).includes("secret"), false);
-})(scenarioContext);
+})();
 });
 
 Then("a message and a parent are kept as given", function () {
@@ -41,7 +41,7 @@ Then("a message and a parent are kept as given", function () {
   await fake.propose(proposal({ message: "Mine", parent: "abc" }));
   assert.equal(fake.proposals[0].message, "Mine");
   assert.equal(fake.proposals[0].parent, "abc");
-})(scenarioContext);
+})();
 });
 
 Then("what the repository already has is nothing to change", function () {
@@ -52,7 +52,7 @@ Then("what the repository already has is nothing to change", function () {
   assert.equal(fake.proposals.length, 0);
   await fake.propose(proposal({ changes: { "a.txt": null } }));
   assert.deepEqual(fake.proposals[0].changes, { "a.txt": null });
-})(scenarioContext);
+})();
 });
 
 Then("it refuses what propose refuses", function () {
@@ -62,7 +62,7 @@ Then("it refuses what propose refuses", function () {
   await assert.rejects(fake.propose(proposal({ changes: { "a.txt": 1 } })), /neither text nor null/);
   await fake.propose(proposal());
   await assert.rejects(fake.propose(proposal()), /Reference already exists/);
-})(scenarioContext);
+})();
 });
 
 Then("it records expect and autoMerge, and answers as propose does", function () {
@@ -75,7 +75,7 @@ Then("it records expect and autoMerge, and answers as propose does", function ()
   assert.equal("autoMerge" in (await fake.propose(proposal({ branch: "b2" }))), false);
   const refused = fakePublisher({ autoMerge: "not allowed" });
   assert.equal((await refused.propose(proposal({ autoMerge: true }))).autoMerge, "not allowed");
-})(scenarioContext);
+})();
 });
 
 Then("a moved file makes a proposal that expects it stale", function () {
@@ -84,5 +84,5 @@ Then("a moved file makes a proposal that expects it stale", function () {
   assert.deepEqual(await fake.propose(proposal({ expect: { "a.txt": "s" } })), { status: "stale", path: "a.txt" });
   assert.equal(fake.proposals.length, 0);
   assert.equal((await fake.propose(proposal())).status, "opened");
-})(scenarioContext);
+})();
 });

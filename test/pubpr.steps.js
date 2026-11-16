@@ -48,7 +48,7 @@ Then("one commit holds every change, on the newest base, and a pull request open
   assert.equal(gh.pulls[0].body, "Why.");
   assert.equal(gh.pulls[0].head, "edit/one");
   assert.equal(gh.pulls[0].base, "main");
-})(scenarioContext);
+})();
 });
 
 Then("the commit goes on what the base is now, not what it was", function () {
@@ -59,7 +59,7 @@ Then("the commit goes on what the base is now, not what it was", function () {
   const result = await propose(proposal(gh, { branch: "edit/two", changes: { "c.txt": "mine\n" } }));
   assert.deepEqual(gh.commit(result.commit).parents, [newest]);
   assert.deepEqual(gh.files("edit/two"), { "a.txt": "old\n", "b.txt": "theirs\n", "c.txt": "mine\n" });
-})(scenarioContext);
+})();
 });
 
 Then("a named base is used, and the default branch isn't looked up", function () {
@@ -70,7 +70,7 @@ Then("a named base is used, and the default branch isn't looked up", function ()
   assert.equal(gh.pulls[1].base, "stable");
   assert.equal(gh.files(result.commit)["s.txt"], "s\n");
   assert.equal(gh.requests.some((r) => r.path === "/repos/o/r" && r !== gh.requests[0]), false);
-})(scenarioContext);
+})();
 });
 
 Then("a parent keeps the commit on what the caller read", function () {
@@ -81,7 +81,7 @@ Then("a parent keeps the commit on what the caller read", function () {
   const result = await propose(proposal(gh, { parent: read }));
   assert.deepEqual(gh.commit(result.commit).parents, [read]);
   assert.equal(gh.pulls[0].base, "main");
-})(scenarioContext);
+})();
 });
 
 Then("<name> is nothing to change, and writes nothing that shows", async function () {
@@ -101,7 +101,7 @@ Then("<name> is nothing to change, and writes nothing that shows", async functio
     assert.equal(gh.pulls.length, 0);
     const kinds = gh.written().map((r) => r.path);
     assert.deepEqual(kinds.filter((p) => !p.endsWith("/git/trees")), []);
-  })(scenarioContext);
+  })();
   }
 });
 
@@ -111,7 +111,7 @@ Then("a delete of a missing file doesn't stop the rest", function () {
   const result = await propose(proposal(gh, { changes: { "gone.txt": null, "a.txt": "new\n" } }));
   assert.equal(result.status, "opened");
   assert.deepEqual(gh.files("edit/one"), { "a.txt": "new\n" });
-})(scenarioContext);
+})();
 });
 
 Then("a path is encoded, whatever is in it", function () {
@@ -119,7 +119,7 @@ Then("a path is encoded, whatever is in it", function () {
   const gh = fakeGitHub({ files: { "a b/c#d?.txt": "old\n" } });
   await propose(proposal(gh, { changes: { "a b/c#d?.txt": null, "x.txt": "x\n" } }));
   assert.deepEqual(gh.files("edit/one"), { "x.txt": "x\n" });
-})(scenarioContext);
+})();
 });
 
 Then("the commit message is the title and body, or the one given", function () {
@@ -132,7 +132,7 @@ Then("the commit message is the title and body, or the one given", function () {
   const given = await propose(proposal(gh, { branch: "c", body: "Why.", message: "Mine\n\n- one\n" }));
   assert.equal(gh.commit(given.commit).message, "Mine\n\n- one\n");
   assert.equal(gh.pulls[2].body, "Why.");
-})(scenarioContext);
+})();
 });
 
 Then("a token may be an async function, asked once per proposal", function () {
@@ -143,7 +143,7 @@ Then("a token may be an async function, asked once per proposal", function () {
   assert.equal(result.status, "opened");
   assert.equal(asked, 1);
   assert.ok(gh.requests.every((r) => r.authorization === "Bearer secret"));
-})(scenarioContext);
+})();
 });
 
 Then("a token that is <name> fails before any request", async function () {
@@ -157,7 +157,7 @@ Then("a token that is <name> fails before any request", async function () {
     const gh = fakeGitHub();
     await assert.rejects(propose(proposal(gh, { token })), /no GitHub token/);
     assert.equal(gh.requests.length, 0);
-  })(scenarioContext);
+  })();
   }
 });
 
@@ -170,7 +170,7 @@ Then("what GitHub refuses comes back with its status, and without the token", fu
     assert.equal(JSON.stringify({ ...error, message: error.message, stack: error.stack }).includes("wrong-token"), false);
     return true;
   });
-})(scenarioContext);
+})();
 });
 
 Then("a failure other than a missing file while checking a delete still fails", function () {
@@ -179,7 +179,7 @@ Then("a failure other than a missing file while checking a delete still fails", 
   const failing = async (url, init) => (String(url).includes("/contents/") ? new Response("", { status: 500 }) : gh.fetch(url, init));
   await assert.rejects(propose(proposal(gh, { fetch: failing, changes: { "a.txt": null } })), (e) => e.status === 500);
   assert.equal(gh.written().length, 0);
-})(scenarioContext);
+})();
 });
 
 Then("a branch that exists fails, and opens no pull request", function () {
@@ -188,7 +188,7 @@ Then("a branch that exists fails, and opens no pull request", function () {
   await propose(proposal(gh));
   await assert.rejects(propose(proposal(gh, { changes: { "b.txt": "b\n" } })), /Reference already exists/);
   assert.equal(gh.pulls.length, 1);
-})(scenarioContext);
+})();
 });
 
 Then("propose without a <missing> fails before any request", async function () {
@@ -198,7 +198,7 @@ Then("propose without a <missing> fails before any request", async function () {
     const gh = fakeGitHub();
     await assert.rejects(propose(proposal(gh, { [missing]: undefined })), new RegExp(`needs a ${missing}`));
     assert.equal(gh.requests.length, 0);
-  })(scenarioContext);
+  })();
   }
 });
 
@@ -216,7 +216,7 @@ Then("changes that are <name> fail before any request", async function () {
     const gh = fakeGitHub();
     await assert.rejects(propose(proposal(gh, { changes })), pattern);
     assert.equal(gh.requests.length, 0);
-  })(scenarioContext);
+  })();
   }
 });
 
@@ -226,7 +226,7 @@ Then("github answers JSON, or a file's text when asked for it raw", function () 
   const api = github({ token: "secret", fetch: gh.fetch });
   assert.equal((await api("/repos/o/r")).default_branch, "main");
   assert.equal(await api(`/repos/o/r/contents/a.txt?ref=${gh.branch("main")}`, { raw: true }), "text\n");
-})(scenarioContext);
+})();
 });
 
 Then("github asks a token function each time, so a new sign-in counts", function () {
@@ -237,14 +237,14 @@ Then("github asks a token function each time, so a new sign-in counts", function
   await assert.rejects(api("/repos/o/r"), (e) => e.status === 401);
   current = "secret";
   assert.equal((await api("/repos/o/r")).default_branch, "main");
-})(scenarioContext);
+})();
 });
 
 Then("an error without a message says the status alone", function () {
   return (async () => {
   const api = github({ token: "secret", fetch: async () => new Response("<html>", { status: 502 }) });
   await assert.rejects(api("/x"), (e) => e.message === "GitHub said 502" && e.status === 502);
-})(scenarioContext);
+})();
 });
 
 Then("github uses the global fetch unless told otherwise", function () {
@@ -260,7 +260,7 @@ Then("expect lets a proposal through when each file is as read", function () {
   const gh = fakeGitHub({ files: { "a.txt": "old\n" } });
   const result = await propose(proposal(gh, { expect: { "a.txt": blobSha("old\n"), "new.txt": null }, changes: { "a.txt": "new\n", "new.txt": "n\n" } }));
   assert.equal(result.status, "opened");
-})(scenarioContext);
+})();
 });
 
 Then("expect refuses <name>, and writes nothing", async function () {
@@ -274,7 +274,7 @@ Then("expect refuses <name>, and writes nothing", async function () {
     const gh = fakeGitHub({ files: { "a.txt": "old\n" } });
     assert.deepEqual(await propose(proposal(gh, { expect })), { status: "stale", path });
     assert.deepEqual(gh.written(), []);
-  })(scenarioContext);
+  })();
   }
 });
 
@@ -286,7 +286,7 @@ Then("expect looks at what the proposal builds on, the newest commit by default"
   const expect = { "a.txt": blobSha("old\n") };
   assert.equal((await propose(proposal(gh, { expect }))).status, "stale");
   assert.equal((await propose(proposal(gh, { expect, parent: read }))).status, "opened");
-})(scenarioContext);
+})();
 });
 
 Then("autoMerge turns it on, and says so", function () {
@@ -296,7 +296,7 @@ Then("autoMerge turns it on, and says so", function () {
   assert.equal(result.autoMerge, "on");
   assert.deepEqual(gh.autoMerges, ["PR_1"]);
   assert.deepEqual(gh.merged, []);
-})(scenarioContext);
+})();
 });
 
 Then("without autoMerge, nothing is asked", function () {
@@ -305,7 +305,7 @@ Then("without autoMerge, nothing is asked", function () {
   const result = await propose(proposal(gh));
   assert.equal("autoMerge" in result, false);
   assert.deepEqual(gh.autoMerges, []);
-})(scenarioContext);
+})();
 });
 
 Then("autoMerge merges now when GitHub says there's nothing left to wait for", function () {
@@ -313,7 +313,7 @@ Then("autoMerge merges now when GitHub says there's nothing left to wait for", f
   const gh = fakeGitHub({ autoMergeAnswer: "Pull request Pull request is in clean status" });
   assert.equal((await propose(proposal(gh, { autoMerge: true }))).autoMerge, "merged");
   assert.deepEqual(gh.merged, [1]);
-})(scenarioContext);
+})();
 });
 
 Then("autoMerge being refused is reported, and the pull request still stands", function () {
@@ -323,7 +323,7 @@ Then("autoMerge being refused is reported, and the pull request still stands", f
   assert.equal(result.status, "opened");
   assert.equal(result.url, "https://github.com/o/r/pull/1");
   assert.equal(result.autoMerge, "Auto merge is not allowed for this repository");
-})(scenarioContext);
+})();
 });
 
 Then("autoMerge failing outright is reported too", function () {
@@ -333,7 +333,7 @@ Then("autoMerge failing outright is reported too", function () {
   const result = await propose(proposal(gh, { autoMerge: true, fetch: failing }));
   assert.equal(result.status, "opened");
   assert.equal(result.autoMerge, "GitHub said 502");
-})(scenarioContext);
+})();
 });
 
 Then("the package needs nothing: no dependencies, no imports, nothing only Node has", function () {
@@ -343,5 +343,5 @@ Then("the package needs nothing: no dependencies, no imports, nothing only Node 
   const source = await readFile(new URL("../lib/pubpr.js", import.meta.url), "utf8");
   assert.equal(/^import\b/m.test(source), false);
   assert.equal(/\b(process|require|Buffer)\b/.test(source), false);
-})(scenarioContext);
+})();
 });
