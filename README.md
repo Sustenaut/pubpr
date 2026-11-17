@@ -148,7 +148,7 @@ development dependencies (cucumber-js, c8) are for the tests only: pubpr itself
 still has none. Pull requests that change
 `lib/` record what they change with `pubrel add`; a release is cut with `pubrel
 prepare` from a checkout whose `corpus/.publet` holds the release key, and merging
-its pull request tags it. See [pubkit](https://github.com/Sustenaut/pubkit#readme)
+its pull request tags it. See [pubrules](https://github.com/Sustenaut/pubrules#readme)
 for the shared setup.
 
 ## Licence
