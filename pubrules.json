@@ -24,5 +24,6 @@
     "wheels": "https://storage.sustenaut.eu/wheels",
     "terraform": "https://storage.sustenaut.eu/terraform",
     "pypi": "https://storage.sustenaut.eu/pypi"
-  }
+  },
+  "pubtest": {"cassettes": true}
 }
