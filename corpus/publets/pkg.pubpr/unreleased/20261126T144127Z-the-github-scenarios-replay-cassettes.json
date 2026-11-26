@@ -1,0 +1,4 @@
+{
+  "category": "internal",
+  "change": "The GitHub scenarios replay cassettes recorded against the GitHub test org, through integrations' Caller on pubtest 0.3.0's record/replay harness, in place of the fake GitHub; pubpr/fake is unchanged"
+}

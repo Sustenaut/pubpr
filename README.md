@@ -142,10 +142,27 @@ npm test
 ```
 
 The tests are Gherkin scenarios (`test/features/*.feature`, with their steps
-in `test/*.steps.js`), run by cucumber-js under c8 for coverage, against the
-fake GitHub in `test/fake-github.js`; they never reach the network. The
-development dependencies (cucumber-js, c8) are for the tests only: pubpr itself
-still has none. Pull requests that change
+in `test/*.steps.js`), run by cucumber-js under c8 for coverage. Every call to
+GitHub goes through integrations' `Caller` on pubtest's record/replay harness
+(`"pubtest": {"cassettes": true}` in pubrules.json): a scenario replays its
+cassette, one per scenario, from the private data repository beside this one,
+`../pubpr-data/integrations/cassettes/`, and never reaches the network.
+Without that checkout every scenario fails, saying there is no data repo; a
+scenario whose cassette is missing or out of date fails naming the
+`pubtest record` that records it. What GitHub refuses on purpose (401, 422,
+404, 403, 5xx, auto-merge's answers) comes from pubtest's fault steps.
+
+Recording runs each scenario against a repository integrations' GitHub steps
+make for it in the GitHub test org, as its recorder app, whose credentials
+`./with-secrets` reads from Bitwarden (`BWS_ACCESS_TOKEN` in `.env`):
+
+```sh
+./with-secrets node_modules/.bin/pubtest record --all --create-data-repo   # the first time
+./with-secrets node_modules/.bin/pubtest record --changed                  # after a change
+```
+
+The development dependencies (cucumber-js, c8, pubtest, integrations) are for
+the tests only: pubpr itself still has none. Pull requests that change
 `lib/` record what they change with `pubrel add`; a release is cut with `pubrel
 prepare` from a checkout whose `corpus/.publet` holds the release key, and merging
 its pull request tags it. See [pubrules](https://github.com/Sustenaut/pubrules#readme)

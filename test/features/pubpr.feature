@@ -1,14 +1,21 @@
 @pubpr
-Feature: propose and github, against the fake GitHub in test/fake-github.js
+Feature: propose and github, against GitHub, recorded and replayed
   pubpr makes one commit and a pull request from a set of changes, and
   refuses before any request what it cannot send.
 
+  Each scenario's calls replay its cassette, recorded with `pubtest record`
+  against a repository of the GitHub test org that integrations' steps make
+  for it: "o/r" here. A commit is named by its label: "start" for the one the
+  repository's files are in, or the one someone else's push gave it. What
+  GitHub refuses on purpose comes from a fault put on the calls, not from
+  the recording.
+
   A proposal is to o/r, on the branch edit/one, titled "Edit things",
-  changing a.txt to "new", with the token "secret", which the fake GitHub
-  takes, unless a scenario says otherwise.
+  changing a.txt to "new", with the recorder's token, unless a scenario says
+  otherwise.
 
   Scenario: A proposal opens a pull request
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n", "b.txt": "keep\n", "dir/c.txt": "go\n"}
       """
@@ -22,7 +29,7 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     And the result's "branch" is "edit/one"
 
   Scenario: One commit holds every change, on the newest base
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n", "b.txt": "keep\n", "dir/c.txt": "go\n"}
       """
@@ -35,7 +42,7 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     And the result's "parents" is '["start"]'
 
   Scenario: The branch holds every change, and main is untouched
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n", "b.txt": "keep\n", "dir/c.txt": "go\n"}
       """
@@ -50,7 +57,7 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       """
 
   Scenario: A proposal writes one commit, its branch and a pull request, and leaves main as it was
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n", "b.txt": "keep\n", "dir/c.txt": "go\n"}
       """
@@ -60,10 +67,11 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       """
     And I read what GitHub holds
     Then the result's "main" is "start"
+    And the result's "edit/one" is "the commit it made"
     And the result's "written" is '["POST /repos/o/r/git/trees", "POST /repos/o/r/git/commits", "POST /repos/o/r/git/refs", "POST /repos/o/r/pulls"]'
 
   Scenario: The pull request is titled, explained, and from the branch to the default one
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n", "b.txt": "keep\n", "dir/c.txt": "go\n"}
       """
@@ -74,11 +82,11 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     And I read the pull requests
     Then the result is:
       """
-      [{"title": "Edit things", "body": "Why.", "head": "edit/one", "base": "main", "number": 1}]
+      [{"title": "Edit things", "body": "Why.", "head": "edit/one", "base": "main", "number": 1, "merged": false}]
       """
 
   Scenario: The commit goes on what the base is now, not what it was
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
@@ -86,7 +94,7 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       """
       {}
       """
-    And someone else commits to "main", labelled "theirs":
+    And someone else pushes to "main" of "o/r" as commit "theirs":
       """
       {"b.txt": "theirs\n"}
       """
@@ -98,7 +106,7 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     Then the result's "parents" is '["theirs"]'
 
   Scenario: The commit holds what the base holds now
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
@@ -106,7 +114,7 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       """
       {}
       """
-    And someone else commits to "main", labelled "theirs":
+    And someone else pushes to "main" of "o/r" as commit "theirs":
       """
       {"b.txt": "theirs\n"}
       """
@@ -121,29 +129,29 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       """
 
   Scenario: A named base is used
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
-    And I have proposed:
+    And someone else pushes to "stable" of "o/r":
       """
-      {"branch": "stable", "changes": {"s.txt": "s\n"}}
+      {"s.txt": "s\n"}
       """
     When I propose:
       """
       {"base": "stable", "branch": "edit/two"}
       """
     And I read the pull requests
-    Then the result's "1.base" is "stable"
+    Then the result's "0.base" is "stable"
 
   Scenario: A proposal on a named base holds what that base holds
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
-    And I have proposed:
+    And someone else pushes to "stable" of "o/r":
       """
-      {"branch": "stable", "changes": {"s.txt": "s\n"}}
+      {"s.txt": "s\n"}
       """
     When I propose:
       """
@@ -156,13 +164,13 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       """
 
   Scenario: With a named base, the default branch isn't looked up
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
-    And I have proposed:
+    And someone else pushes to "stable" of "o/r":
       """
-      {"branch": "stable", "changes": {"s.txt": "s\n"}}
+      {"s.txt": "s\n"}
       """
     When I propose:
       """
@@ -172,41 +180,39 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     Then the result does not include "GET /repos/o/r"
 
   Scenario: A parent keeps the commit on what the caller read
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
-    And I read "main" as the commit "read"
-    And someone else commits to "main", labelled "theirs":
+    And someone else pushes to "main" of "o/r" as commit "theirs":
       """
       {"a.txt": "theirs\n"}
       """
     When I propose:
       """
-      {"parent": "{commit read}"}
+      {"parent": "{commit start}"}
       """
     And I read the commit it made
-    Then the result's "parents" is '["read"]'
+    Then the result's "parents" is '["start"]'
 
   Scenario: A proposal with a parent still asks to merge into the default branch
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
-    And I read "main" as the commit "read"
-    And someone else commits to "main", labelled "theirs":
+    And someone else pushes to "main" of "o/r" as commit "theirs":
       """
       {"a.txt": "theirs\n"}
       """
     When I propose:
       """
-      {"parent": "{commit read}"}
+      {"parent": "{commit start}"}
       """
     And I read the pull requests
     Then the result's "0.base" is "main"
 
   Scenario Outline: <name> is nothing to change
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       <files>
       """
@@ -227,7 +233,7 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       | Both                                | {"a.txt": "same\\n"} | {"a.txt": "same\\n", "gone.txt": null} |
 
   Scenario Outline: <name> writes nothing that shows
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       <files>
       """
@@ -249,7 +255,7 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       | Both                                | {"a.txt": "same\\n"} | {"a.txt": "same\\n", "gone.txt": null} | ["POST /repos/o/r/git/trees"] |
 
   Scenario: A delete of a missing file doesn't stop the rest
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
@@ -260,7 +266,7 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     Then the result's "status" is "opened"
 
   Scenario: A delete of a missing file leaves the rest to change
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
@@ -274,8 +280,27 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       {"a.txt": "new\n"}
       """
 
+  Scenario: A missing file GitHub says is not found is not deleted, and the rest still changes
+    Given the GitHub repository "o/r" holds:
+      """
+      {"a.txt": "old\n", "b.txt": "keep\n"}
+      """
+    And the "github" integration answers "GET /repos/*/contents/b.txt" with 404 and:
+      """
+      {"message": "Not Found"}
+      """
+    When I propose:
+      """
+      {"changes": {"b.txt": null, "a.txt": "new\n"}}
+      """
+    And I read the files on "edit/one"
+    Then the result is:
+      """
+      {"a.txt": "new\n", "b.txt": "keep\n"}
+      """
+
   Scenario: A path is encoded, whatever is in it
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a b/c#d?.txt": "old\n"}
       """
@@ -290,13 +315,19 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       """
 
   Scenario: The commit message is the title
-    Given a GitHub repository o/r with nothing in it
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
     When I propose the default change
     And I read the commit it made
     Then the result's "message" is "Edit things"
 
   Scenario: The commit message is the title and body
-    Given a GitHub repository o/r with nothing in it
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
     When I propose:
       """
       {"branch": "b", "body": "Why."}
@@ -305,7 +336,10 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     Then the result's "message's lines" is '["Edit things", "", "Why."]'
 
   Scenario: The commit message is the one given, and the pull request keeps the body
-    Given a GitHub repository o/r with nothing in it
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
     When I propose:
       """
       {"branch": "c", "body": "Why.", "message": "Mine\n\n- one\n"}
@@ -314,7 +348,10 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     Then the result's "message's lines" is '["Mine", "", "- one", ""]'
 
   Scenario: The pull request keeps the body when the message is given
-    Given a GitHub repository o/r with nothing in it
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
     When I propose:
       """
       {"branch": "c", "body": "Why.", "message": "Mine\n\n- one\n"}
@@ -323,27 +360,35 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     Then the result's "0.body" is "Why."
 
   Scenario: A token may be an async function
-    Given a GitHub repository o/r with nothing in it
-    And my token is an async function that answers "secret"
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
+    And my token is an async function
     When I propose the default change
     Then the result's "status" is "opened"
 
   Scenario: A token function is asked once per proposal
-    Given a GitHub repository o/r with nothing in it
-    And my token is an async function that answers "secret"
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
+    And my token is an async function
     When I propose the default change
     And I count how often my token was asked for
     Then the result is "1"
 
   Scenario: Every request carries the token the function answers
-    Given a GitHub repository o/r with nothing in it
-    And my token is an async function that answers "secret"
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
+    And my token is an async function
     When I propose the default change
     And I list the tokens the requests to GitHub carried
-    Then the result is '["Bearer secret"]'
+    Then the result is '["Bearer my token"]'
 
   Scenario Outline: A token that is <name> fails
-    Given a GitHub repository o/r with nothing in it
     When I propose:
       """
       {"token": <token>}
@@ -356,7 +401,6 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       | empty | ""            |
 
   Scenario Outline: A token that is <name> fails before any request
-    Given a GitHub repository o/r with nothing in it
     When I propose:
       """
       {"token": <token>}
@@ -370,20 +414,21 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       | empty | ""            |
 
   Scenario: A token function that finds none fails
-    Given a GitHub repository o/r with nothing in it
-    And my token is an async function that finds none
+    Given my token is an async function that finds none
     When I propose the default change
     Then it is refused, saying "no GitHub token"
 
   Scenario: A token function that finds none fails before any request
-    Given a GitHub repository o/r with nothing in it
-    And my token is an async function that finds none
+    Given my token is an async function that finds none
     When I propose the default change
     And I list the requests the proposal sent to GitHub
     Then the result is "[]"
 
   Scenario: What GitHub refuses comes back with its status, and without the token
-    Given a GitHub repository o/r with nothing in it
+    Given the "github" integration answers "GET /repos/*" with 401 and:
+      """
+      {"message": "Bad credentials", "status": "401"}
+      """
     When I propose:
       """
       {"token": "wrong-token"}
@@ -394,24 +439,31 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     And the result's "holds" is "false"
 
   Scenario: A failure other than a missing file while checking a delete still fails
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
-    And GitHub answers 500 when asked for a file's contents
+    And the "github" integration answers "GET /repos/*/contents/*" with 403 and:
+      """
+      {"message": "Resource not accessible by integration"}
+      """
     When I propose:
       """
       {"changes": {"a.txt": null}}
       """
-    And I read the status of the refusal, and whether it holds "secret"
-    Then the result's "status" is "500"
+    And I read the status of the refusal, and whether it holds "ghs_"
+    Then the result's "status" is "403"
+    And the result's "holds" is "false"
 
   Scenario: A failure while checking a delete writes nothing
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
-    And GitHub answers 500 when asked for a file's contents
+    And the "github" integration answers "GET /repos/*/contents/*" with 403 and:
+      """
+      {"message": "Resource not accessible by integration"}
+      """
     When I propose:
       """
       {"changes": {"a.txt": null}}
@@ -419,11 +471,29 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     And I read what GitHub holds
     Then the result's "written" is "[]"
 
-  Scenario: A branch that exists fails
-    Given a GitHub repository o/r with nothing in it
-    And I have proposed:
+  Scenario: A server error while checking a delete fails as the Caller says
+    Given the GitHub repository "o/r" holds:
       """
-      {}
+      {"a.txt": "old\n"}
+      """
+    And the "github" integration answers "GET /repos/*/contents/*" with 500 and:
+      """
+      {"message": "Server Error"}
+      """
+    When I propose:
+      """
+      {"changes": {"a.txt": null}}
+      """
+    Then it is refused, saying "github.edit-pr open-pr: HTTP 500"
+
+  Scenario: A branch that exists fails
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
+    And the "github" integration answers "POST /repos/*/git/refs" with 422 and:
+      """
+      {"message": "Reference already exists"}
       """
     When I propose:
       """
@@ -432,20 +502,23 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     Then it is refused, saying "Reference already exists"
 
   Scenario: A branch that exists opens no pull request
-    Given a GitHub repository o/r with nothing in it
-    And I have proposed:
+    Given the GitHub repository "o/r" holds:
       """
-      {}
+      {"README.md": "r\n"}
+      """
+    And the "github" integration answers "POST /repos/*/git/refs" with 422 and:
+      """
+      {"message": "Reference already exists"}
       """
     When I propose:
       """
       {"changes": {"b.txt": "b\n"}}
       """
     And I read what GitHub holds
-    Then the result's "pulls" is "1"
+    Then the result's "pulls" is "0"
+    And the result's "written" is '["POST /repos/o/r/git/trees", "POST /repos/o/r/git/commits", "POST /repos/o/r/git/refs"]'
 
   Scenario Outline: Propose without a <missing> fails
-    Given a GitHub repository o/r with nothing in it
     When I propose:
       """
       {"<missing>": "{undefined}"}
@@ -459,7 +532,6 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       | title   |
 
   Scenario Outline: Propose without a <missing> fails before any request
-    Given a GitHub repository o/r with nothing in it
     When I propose:
       """
       {"<missing>": "{undefined}"}
@@ -474,7 +546,6 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       | title   |
 
   Scenario Outline: Changes that are <name> fail
-    Given a GitHub repository o/r with nothing in it
     When I propose:
       """
       {"changes": <changes>}
@@ -491,7 +562,6 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       | an empty path         | {"": "x"}                       | needs a path                   |
 
   Scenario Outline: Changes that are <name> fail before any request
-    Given a GitHub repository o/r with nothing in it
     When I propose:
       """
       {"changes": <changes>}
@@ -509,7 +579,7 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       | an empty path         | {"": "x"}                       |
 
   Scenario: github answers JSON
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "text\n"}
       """
@@ -517,7 +587,7 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     Then the result's "default_branch" is "main"
 
   Scenario: github answers a file's text when asked for it raw
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "text\n"}
       """
@@ -529,9 +599,16 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       """
 
   Scenario: github asks a token function each time, so a new sign-in counts
-    Given a GitHub repository o/r with nothing in it
-    When I ask github for "/repos/o/r" with a token function that answers "wrong", then "secret"
-    Then the result is '["refused with 401", "main"]'
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
+    And the "github" integration answers with 401, then as recorded
+    When I ask github for "/repos/o/r" twice, with a token function that answers "wrong", then mine
+    Then the result is:
+      """
+      {"answers": ["refused with 401", "main"], "tokens": ["Bearer wrong", "Bearer my token"]}
+      """
 
   Scenario: An error without a message says the status alone
     When I ask github for "/x" of a server that answers 502 with "<html>"
@@ -540,23 +617,27 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     And the result's "status" is "502"
 
   Scenario: github uses the global fetch unless told otherwise
-    Given a GitHub repository o/r with nothing in it
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
     When I ask github for "/repos/o/r" with no fetch given
     Then the result's "default_branch" is "main"
 
   Scenario: Expect lets a proposal through when each file is as read
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
+    And I have read the blob sha of "a.txt"
     When I propose:
       """
-      {"expect": {"a.txt": "{blob of old\\n}", "new.txt": null}, "changes": {"a.txt": "new\n", "new.txt": "n\n"}}
+      {"expect": {"a.txt": "{blob I read of a.txt}", "new.txt": null}, "changes": {"a.txt": "new\n", "new.txt": "n\n"}}
       """
     Then the result's "status" is "opened"
 
   Scenario Outline: Expect refuses <name>
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
@@ -573,7 +654,7 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       | a file that has appeared | {"a.txt": null}                 | a.txt    |
 
   Scenario Outline: Expect refusing <name> writes nothing
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
@@ -591,39 +672,46 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
       | a file that has appeared | {"a.txt": null}                 |
 
   Scenario: Expect looks at the newest commit by default
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
-    And I read "main" as the commit "read"
-    And someone else commits to "main", labelled "theirs":
+    And I have read the blob sha of "a.txt"
+    And someone else pushes to "main" of "o/r" as commit "theirs":
       """
       {"a.txt": "theirs\n"}
       """
     When I propose:
       """
-      {"expect": {"a.txt": "{blob of old\\n}"}}
+      {"expect": {"a.txt": "{blob I read of a.txt}"}}
       """
     Then the result's "status" is "stale"
 
   Scenario: Expect looks at what the proposal builds on
-    Given a GitHub repository o/r holding:
+    Given the GitHub repository "o/r" holds:
       """
       {"a.txt": "old\n"}
       """
-    And I read "main" as the commit "read"
-    And someone else commits to "main", labelled "theirs":
+    And I have read the blob sha of "a.txt"
+    And someone else pushes to "main" of "o/r" as commit "theirs":
       """
       {"a.txt": "theirs\n"}
       """
     When I propose:
       """
-      {"expect": {"a.txt": "{blob of old\\n}"}, "parent": "{commit read}"}
+      {"expect": {"a.txt": "{blob I read of a.txt}"}, "parent": "{commit start}"}
       """
     Then the result's "status" is "opened"
 
   Scenario: AutoMerge turns it on, and says so
-    Given a GitHub repository o/r with nothing in it
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
+    And the "github" integration answers "POST /graphql" with 200 and:
+      """
+      {"data": {"enablePullRequestAutoMerge": {"clientMutationId": null}}}
+      """
     When I propose:
       """
       {"autoMerge": true}
@@ -631,28 +719,47 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     Then the result's "autoMerge" is "on"
 
   Scenario: AutoMerge asks GitHub to merge the pull request once it may, and merges nothing now
-    Given a GitHub repository o/r with nothing in it
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
+    And the "github" integration answers "POST /graphql" with 200 and:
+      """
+      {"data": {"enablePullRequestAutoMerge": {"clientMutationId": null}}}
+      """
     When I propose:
       """
       {"autoMerge": true}
       """
     And I read the auto-merges asked for and the merges made
-    Then the result is '{"autoMerges": ["PR_1"], "merged": []}'
+    Then the result is '{"autoMerges": [1], "merged": []}'
 
   Scenario: Without autoMerge, the answer says nothing of it
-    Given a GitHub repository o/r with nothing in it
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
     When I propose the default change
     Then the result does not include "autoMerge"
 
   Scenario: Without autoMerge, nothing is asked
-    Given a GitHub repository o/r with nothing in it
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
     When I propose the default change
     And I read the auto-merges asked for and the merges made
     Then the result's "autoMerges" is "[]"
 
   Scenario: AutoMerge merges now when GitHub says there's nothing left to wait for
-    Given a GitHub repository o/r with nothing in it
-    And GitHub answers a request for auto-merge with the error "Pull request Pull request is in clean status"
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
+    And the "github" integration answers "POST /graphql" with 200 and:
+      """
+      {"data": null, "errors": [{"message": "Pull request Pull request is in clean status"}]}
+      """
     When I propose:
       """
       {"autoMerge": true}
@@ -660,18 +767,30 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     Then the result's "autoMerge" is "merged"
 
   Scenario: AutoMerge merging now merges the pull request
-    Given a GitHub repository o/r with nothing in it
-    And GitHub answers a request for auto-merge with the error "Pull request Pull request is in clean status"
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
+    And the "github" integration answers "POST /graphql" with 200 and:
+      """
+      {"data": null, "errors": [{"message": "Pull request Pull request is in clean status"}]}
+      """
     When I propose:
       """
       {"autoMerge": true}
       """
-    And I read the auto-merges asked for and the merges made
-    Then the result's "merged" is "[1]"
+    And I read the pull requests
+    Then the result's "0.merged" is "true"
 
   Scenario: AutoMerge being refused is reported, and the pull request still stands
-    Given a GitHub repository o/r with nothing in it
-    And GitHub answers a request for auto-merge with the error "Auto merge is not allowed for this repository"
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
+    And the "github" integration answers "POST /graphql" with 200 and:
+      """
+      {"data": null, "errors": [{"message": "Auto merge is not allowed for this repository"}]}
+      """
     When I propose:
       """
       {"autoMerge": true}
@@ -681,14 +800,20 @@ Feature: propose and github, against the fake GitHub in test/fake-github.js
     And the result's "autoMerge" is "Auto merge is not allowed for this repository"
 
   Scenario: AutoMerge failing outright is reported too
-    Given a GitHub repository o/r with nothing in it
-    And GitHub answers 502 when asked to auto-merge
+    Given the GitHub repository "o/r" holds:
+      """
+      {"README.md": "r\n"}
+      """
+    And the "github" integration answers "POST /graphql" with 502 and:
+      """
+      {"message": "Bad Gateway"}
+      """
     When I propose:
       """
       {"autoMerge": true}
       """
     Then the result's "status" is "opened"
-    And the result's "autoMerge" is "GitHub said 502"
+    And the result's "autoMerge" includes "HTTP 502"
 
   Scenario: The package needs nothing: no dependencies, no imports, nothing only Node has
     When I read the package
