@@ -13,7 +13,7 @@ jobs:
   # jobs it ran are skipped, and nothing here tests less than it did.
   tested:
     name: ci
-    uses: Sustenaut/pubrules/.github/workflows/job-tested.yml@36b8b556ff838eb1e24c4e995350f10fdbdf26f3 # v0.45.0
+    uses: Sustenaut/pubrules/.github/workflows/job-tested.yml@498c9185a45fc6edad74658740e66cd369a646a4 # v0.49.1
     with: {"workflow": ".github/workflows/pr.yml"}
     permissions:
       actions: read
@@ -23,29 +23,30 @@ jobs:
     name: ci
     needs: [tested]
     if: ${{ needs.tested.outputs.tested != 'true' }}
-    uses: Sustenaut/pubrules/.github/workflows/job-node-test.yml@36b8b556ff838eb1e24c4e995350f10fdbdf26f3 # v0.45.0
+    uses: Sustenaut/pubrules/.github/workflows/job-node-test.yml@498c9185a45fc6edad74658740e66cd369a646a4 # v0.49.1
     with: {"coverage-report": "coverage/"}
 
   audit:
     name: ci
     needs: [tested]
     if: ${{ needs.tested.outputs.tested != 'true' }}
-    uses: Sustenaut/pubrules/.github/workflows/job-node-audit.yml@36b8b556ff838eb1e24c4e995350f10fdbdf26f3 # v0.45.0
+    uses: Sustenaut/pubrules/.github/workflows/job-node-audit.yml@498c9185a45fc6edad74658740e66cd369a646a4 # v0.49.1
 
   osv:
     name: ci
     needs: [tested]
     if: ${{ needs.tested.outputs.tested != 'true' }}
-    uses: Sustenaut/pubrules/.github/workflows/job-osv.yml@36b8b556ff838eb1e24c4e995350f10fdbdf26f3 # v0.45.0
+    uses: Sustenaut/pubrules/.github/workflows/job-osv.yml@498c9185a45fc6edad74658740e66cd369a646a4 # v0.49.1
 
   sonar:
     name: ci
     needs: [tested, test]
     if: ${{ !failure() && !cancelled() }}
-    uses: Sustenaut/pubrules/.github/workflows/job-sonar.yml@36b8b556ff838eb1e24c4e995350f10fdbdf26f3 # v0.45.0
+    uses: Sustenaut/pubrules/.github/workflows/job-sonar.yml@498c9185a45fc6edad74658740e66cd369a646a4 # v0.49.1
     permissions:
       actions: read
       contents: read
+      pull-requests: read
     with: {"sonar-args": "-Dsonar.tests=test -Dsonar.exclusions=test/**", "reports": "sonar.javascript.lcov.reportPaths=*", "coverage-run": "${{ needs.tested.outputs.run-id }}"}
     secrets: { SONAR_TOKEN: '${{ secrets.SONAR_TOKEN }}' }
 
@@ -70,8 +71,8 @@ jobs:
   release:
     needs: passed
     if: ${{ !cancelled() && needs.passed.result == 'success' }}
-    uses: Sustenaut/pubrel/.github/workflows/release.yml@5395ddd816d9530b649b92ed0b8b3cfdfe87d7dc # v0.6.1
-    with: {"pubrel-version": "v0.6.1"}
+    uses: Sustenaut/pubrel/.github/workflows/release.yml@d0295449195990fc2813ba91945b265a8c0cf040 # v0.7.1
+    with: {"pubrel-version": "v0.7.1"}
     secrets: { RELEASE_APP_ID: '${{ secrets.RELEASE_APP_ID }}', RELEASE_APP_KEY: '${{ secrets.RELEASE_APP_KEY }}' }
     permissions:
       contents: write

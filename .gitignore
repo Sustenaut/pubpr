@@ -4,3 +4,6 @@ coverage/
 
 # Local secrets, such as the Bitwarden token ./with-secrets reads: never committed.
 .env
+
+# The local environment, a directory or a link (pubrel prepare links it into its worktree).
+.venv
